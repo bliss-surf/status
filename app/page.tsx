@@ -1,65 +1,100 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+import {CheckCircle,XCircle,Clock,ExternalLink,Loader} from "lucide-react"
+import {motion} from "framer-motion"
+import {useState,useEffect} from "react"
+
+const Row=({ok,label,loading,responseTime}:{ok:boolean,label:string,loading:boolean,responseTime?:number})=>(
+  <div className="flex items-center justify-between border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3">
+    <div className="flex items-center gap-2">
+      <span className="font-mono text-sm">{label}</span>
+      {!loading && responseTime !== undefined && (
+        <span className="text-xs text-zinc-400">{responseTime}ms</span>
+      )}
     </div>
-  );
+    {loading
+      ?<Loader className="w-4 h-4 text-zinc-400 animate-spin"/>
+      :ok
+      ?<CheckCircle className="w-4 h-4 text-emerald-500"/>
+      :<XCircle className="w-4 h-4 text-red-500"/>}
+  </div>
+)
+
+interface ServiceStatus{
+  ok:boolean
+  responseTime:number
+}
+
+interface Services{
+  bliss_surf_website:ServiceStatus
+  bliss_surf_discord:ServiceStatus
+  zuzu_rest_website:ServiceStatus
+  yuu_pm_host:ServiceStatus
+}
+
+export default function Page(){
+  const [loading,setLoading]=useState(true)
+  const [services,setServices]=useState<Services>({
+    bliss_surf_website:{ok:false,responseTime:0},
+    bliss_surf_discord:{ok:false,responseTime:0},
+    zuzu_rest_website:{ok:false,responseTime:0},
+    yuu_pm_host:{ok:false,responseTime:0},
+  })
+
+  useEffect(()=>{
+    const fetchStatus=async()=>{
+      try{
+        const res=await fetch("/api/status")
+        if(res.ok){
+          const data=await res.json()
+          setServices(data)
+        }
+      }catch(err){
+        console.error("failed to fetch")
+      }finally{
+        setLoading(false)
+      }
+    }
+    fetchStatus()
+  },[])
+
+  return(
+    <motion.div
+      initial={{opacity:0,y:8}}
+      animate={{opacity:1,y:0}}
+      transition={{duration:0.3,ease:[0.22,1,0.36,1]}}
+      className="space-y-6"
+    >
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">Status</h1>
+        <p className="text-xs text-zinc-500 flex items-center gap-2">
+          <Clock className="w-3 h-3"/>updated just now
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">bliss.surf</h2>
+            <a href="https://bliss.surf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+              <ExternalLink className="w-4 h-4 text-zinc-600 dark:text-zinc-400"/>
+            </a>
+          </div>
+          <Row ok={services.bliss_surf_website.ok} loading={loading} label="Website" responseTime={services.bliss_surf_website.responseTime}/>
+          <Row ok={services.bliss_surf_discord.ok} loading={loading} label="Discord API" responseTime={services.bliss_surf_discord.responseTime}/>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">zuzu.rest</h2>
+            <a href="https://zuzu.rest" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+              <ExternalLink className="w-4 h-4 text-zinc-600 dark:text-zinc-400"/>
+            </a>
+          </div>
+          <Row ok={services.zuzu_rest_website.ok} loading={loading} label="Website" responseTime={services.zuzu_rest_website.responseTime}/>
+          <Row ok={services.yuu_pm_host.ok} loading={loading} label="Host" responseTime={services.yuu_pm_host.responseTime}/>
+        </div>
+      </div>
+    </motion.div>
+  )
 }
